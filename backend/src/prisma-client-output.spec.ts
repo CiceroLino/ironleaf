@@ -5,10 +5,7 @@ describe('Prisma client output', () => {
   const rootDir = join(__dirname, '..');
 
   it('generates Prisma Client into node_modules and imports @prisma/client', () => {
-    const schema = readFileSync(
-      join(rootDir, 'prisma/schema.prisma'),
-      'utf8',
-    );
+    const schema = readFileSync(join(rootDir, 'prisma/schema.prisma'), 'utf8');
     const prismaService = readFileSync(
       join(rootDir, 'src/prisma/prisma.service.ts'),
       'utf8',

@@ -1,17 +1,45 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+type NestCliConfig = {
+  compilerOptions: {
+    builder: string;
+    typeCheck: boolean;
+  };
+};
+
+type SwcConfig = {
+  jsc: {
+    parser: {
+      syntax: string;
+      decorators: boolean;
+      dynamicImport: boolean;
+    };
+    transform: {
+      legacyDecorator: boolean;
+      decoratorMetadata: boolean;
+    };
+  };
+};
+
+type PackageJson = {
+  jest: {
+    transform: Record<string, string[]>;
+  };
+};
+
+function readJson<T>(path: string): T {
+  const parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+  return parsed as T;
+}
+
 describe('SWC configuration', () => {
   const rootDir = join(__dirname, '..');
 
   it('uses SWC for Nest builds and Jest transforms', () => {
-    const nestCli = JSON.parse(
-      readFileSync(join(rootDir, 'nest-cli.json'), 'utf8'),
-    );
-    const swcrc = JSON.parse(readFileSync(join(rootDir, '.swcrc'), 'utf8'));
-    const packageJson = JSON.parse(
-      readFileSync(join(rootDir, 'package.json'), 'utf8'),
-    );
+    const nestCli = readJson<NestCliConfig>(join(rootDir, 'nest-cli.json'));
+    const swcrc = readJson<SwcConfig>(join(rootDir, '.swcrc'));
+    const packageJson = readJson<PackageJson>(join(rootDir, 'package.json'));
 
     expect(nestCli.compilerOptions).toEqual(
       expect.objectContaining({

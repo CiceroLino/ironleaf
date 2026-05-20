@@ -5,6 +5,31 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 
+type DiscountCodeResponse = {
+  id: string;
+  code: string;
+  campaignId: string;
+  discountType: string;
+  discountValue: number;
+  currency: string | null;
+  expiresAt: string | null;
+  usageLimit: number;
+  redemptionCount: number;
+  campaign?: {
+    name: string;
+  };
+};
+
+type RedemptionResponse = {
+  id: string;
+  redeemedAt: string;
+  discountCode: DiscountCodeResponse;
+};
+
+type ErrorResponse = {
+  message: string;
+};
+
 describe('Discount codes API (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
@@ -46,20 +71,19 @@ describe('Discount codes API (e2e)', () => {
         usageLimit: 2,
       })
       .expect(201);
+    const percentCode = percentResponse.body as unknown as DiscountCodeResponse;
 
-    expect(percentResponse.body).toEqual(
-      expect.objectContaining({
-        id: expect.any(String),
-        code: 'SOCIAL25',
-        campaignId,
-        discountType: 'PERCENT',
-        discountValue: 25,
-        currency: null,
-        expiresAt,
-        usageLimit: 2,
-        redemptionCount: 0,
-      }),
-    );
+    expect(typeof percentCode.id).toBe('string');
+    expect(percentCode).toMatchObject({
+      code: 'SOCIAL25',
+      campaignId,
+      discountType: 'PERCENT',
+      discountValue: 25,
+      currency: null,
+      expiresAt,
+      usageLimit: 2,
+      redemptionCount: 0,
+    });
 
     const fixedResponse = await request(app.getHttpServer())
       .post('/discount-codes')
@@ -72,36 +96,37 @@ describe('Discount codes API (e2e)', () => {
         usageLimit: 5,
       })
       .expect(201);
+    const fixedCode = fixedResponse.body as unknown as DiscountCodeResponse;
 
-    expect(fixedResponse.body).toEqual(
-      expect.objectContaining({
-        code: 'EMAIL10',
-        discountType: 'FIXED',
-        discountValue: 10,
-        currency: 'USD',
-      }),
-    );
+    expect(fixedCode).toMatchObject({
+      code: 'EMAIL10',
+      discountType: 'FIXED',
+      discountValue: 10,
+      currency: 'USD',
+    });
 
     const listResponse = await request(app.getHttpServer())
       .get('/discount-codes')
       .expect(200);
+    const discountCodes =
+      listResponse.body as unknown as DiscountCodeResponse[];
 
-    expect(listResponse.body).toEqual([
-      expect.objectContaining({ code: 'SOCIAL25' }),
-      expect.objectContaining({ code: 'EMAIL10' }),
+    expect(discountCodes.map((discountCode) => discountCode.code)).toEqual([
+      'SOCIAL25',
+      'EMAIL10',
     ]);
 
     const detailResponse = await request(app.getHttpServer())
-      .get(`/discount-codes/${percentResponse.body.id}`)
+      .get(`/discount-codes/${percentCode.id}`)
       .expect(200);
+    const discountCodeDetail =
+      detailResponse.body as unknown as DiscountCodeResponse;
 
-    expect(detailResponse.body).toEqual(
-      expect.objectContaining({
-        id: percentResponse.body.id,
-        code: 'SOCIAL25',
-        campaign: expect.objectContaining({ name: 'Paid Social May' }),
-      }),
-    );
+    expect(discountCodeDetail).toMatchObject({
+      id: percentCode.id,
+      code: 'SOCIAL25',
+      campaign: { name: 'Paid Social May' },
+    });
   });
 
   it('redeems a valid discount code and records usage', async () => {
@@ -118,17 +143,14 @@ describe('Discount codes API (e2e)', () => {
     const redeemResponse = await request(app.getHttpServer())
       .post('/discount-codes/WELCOME20/redeem')
       .expect(201);
+    const redemption = redeemResponse.body as unknown as RedemptionResponse;
 
-    expect(redeemResponse.body).toEqual(
-      expect.objectContaining({
-        id: expect.any(String),
-        redeemedAt: expect.any(String),
-        discountCode: expect.objectContaining({
-          code: 'WELCOME20',
-          redemptionCount: 1,
-        }),
-      }),
-    );
+    expect(typeof redemption.id).toBe('string');
+    expect(typeof redemption.redeemedAt).toBe('string');
+    expect(redemption.discountCode).toMatchObject({
+      code: 'WELCOME20',
+      redemptionCount: 1,
+    });
 
     await expect(prisma.redemption.count()).resolves.toBe(1);
   });
@@ -145,12 +167,11 @@ describe('Discount codes API (e2e)', () => {
       },
     });
 
-    await request(app.getHttpServer())
+    const expiredResponse = await request(app.getHttpServer())
       .post('/discount-codes/OLD10/redeem')
-      .expect(400)
-      .expect(({ body }) => {
-        expect(body.message).toBe('Discount code has expired');
-      });
+      .expect(400);
+    const expiredError = expiredResponse.body as unknown as ErrorResponse;
+    expect(expiredError.message).toBe('Discount code has expired');
 
     await expect(prisma.redemption.count()).resolves.toBe(0);
   });
@@ -168,12 +189,11 @@ describe('Discount codes API (e2e)', () => {
       },
     });
 
-    await request(app.getHttpServer())
+    const limitedResponse = await request(app.getHttpServer())
       .post('/discount-codes/LIMITED/redeem')
-      .expect(400)
-      .expect(({ body }) => {
-        expect(body.message).toBe('Discount code usage limit reached');
-      });
+      .expect(400);
+    const limitedError = limitedResponse.body as unknown as ErrorResponse;
+    expect(limitedError.message).toBe('Discount code usage limit reached');
 
     await expect(prisma.redemption.count()).resolves.toBe(0);
   });

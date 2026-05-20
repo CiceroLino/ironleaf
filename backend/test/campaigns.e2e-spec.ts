@@ -5,6 +5,25 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 
+type CampaignResponse = {
+  id: string;
+  name: string;
+};
+
+type CampaignUsageResponse = Array<{
+  campaign: {
+    id: string;
+    name: string;
+  };
+  totalDiscountCodes: number;
+  totalRedemptions: number;
+  discountCodes: Array<{
+    code: string;
+    redemptionCount: number;
+    usageLimit: number;
+  }>;
+}>;
+
 describe('Campaigns API (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
@@ -31,21 +50,19 @@ describe('Campaigns API (e2e)', () => {
       .post('/campaigns')
       .send({ name: 'Paid Social May' })
       .expect(201);
+    const createdCampaign = createResponse.body as unknown as CampaignResponse;
 
-    expect(createResponse.body).toEqual(
-      expect.objectContaining({
-        id: expect.any(String),
-        name: 'Paid Social May',
-      }),
-    );
+    expect(typeof createdCampaign.id).toBe('string');
+    expect(createdCampaign.name).toBe('Paid Social May');
 
     const listResponse = await request(app.getHttpServer())
       .get('/campaigns')
       .expect(200);
+    const campaigns = listResponse.body as unknown as CampaignResponse[];
 
-    expect(listResponse.body).toEqual([
+    expect(campaigns).toEqual([
       expect.objectContaining({
-        id: createResponse.body.id,
+        id: createdCampaign.id,
         name: 'Paid Social May',
       }),
     ]);
@@ -88,33 +105,32 @@ describe('Campaigns API (e2e)', () => {
     const response = await request(app.getHttpServer())
       .get('/campaigns/usage-summary')
       .expect(200);
+    const usageSummary = response.body as unknown as CampaignUsageResponse;
 
-    expect(response.body).toEqual([
-      expect.objectContaining({
-        campaign: expect.objectContaining({ name: 'Paid Social June' }),
-        totalDiscountCodes: 1,
-        totalRedemptions: 2,
-        discountCodes: [
-          expect.objectContaining({
-            code: 'SOCIAL30',
-            redemptionCount: 2,
-            usageLimit: 10,
-          }),
-        ],
-      }),
-      expect.objectContaining({
-        campaign: expect.objectContaining({ name: 'Email Retention June' }),
-        totalDiscountCodes: 1,
-        totalRedemptions: 0,
-        discountCodes: [
-          expect.objectContaining({
-            code: 'EMAIL15',
-            redemptionCount: 0,
-            usageLimit: 5,
-          }),
-        ],
-      }),
-    ]);
+    expect(usageSummary[0]).toMatchObject({
+      campaign: { name: 'Paid Social June' },
+      totalDiscountCodes: 1,
+      totalRedemptions: 2,
+      discountCodes: [
+        {
+          code: 'SOCIAL30',
+          redemptionCount: 2,
+          usageLimit: 10,
+        },
+      ],
+    });
+    expect(usageSummary[1]).toMatchObject({
+      campaign: { name: 'Email Retention June' },
+      totalDiscountCodes: 1,
+      totalRedemptions: 0,
+      discountCodes: [
+        {
+          code: 'EMAIL15',
+          redemptionCount: 0,
+          usageLimit: 5,
+        },
+      ],
+    });
   });
 
   afterEach(async () => {

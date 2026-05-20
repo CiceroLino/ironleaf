@@ -5,6 +5,15 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { setupSwagger } from './../src/swagger';
 
+type OpenApiDocument = {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+  };
+  paths: Record<string, unknown>;
+};
+
 describe('Swagger docs (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -25,20 +34,15 @@ describe('Swagger docs (e2e)', () => {
     const response = await request(app.getHttpServer())
       .get('/api-json')
       .expect(200);
+    const document = response.body as unknown as OpenApiDocument;
 
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        openapi: expect.stringMatching(/^3\./),
-        info: expect.objectContaining({
-          title: 'Nuzzle Promotions API',
-          version: '1.0.0',
-        }),
-        paths: expect.objectContaining({
-          '/campaigns': expect.any(Object),
-          '/discount-codes': expect.any(Object),
-        }),
-      }),
-    );
+    expect(document.openapi).toMatch(/^3\./);
+    expect(document.info).toMatchObject({
+      title: 'Nuzzle Promotions API',
+      version: '1.0.0',
+    });
+    expect(document.paths).toHaveProperty('/campaigns');
+    expect(document.paths).toHaveProperty('/discount-codes');
   });
 
   afterEach(async () => {

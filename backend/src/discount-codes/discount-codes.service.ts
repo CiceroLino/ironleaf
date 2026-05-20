@@ -75,6 +75,49 @@ export class DiscountCodesService {
     return this.serializeDiscountCode(discountCode);
   }
 
+  redeem(code: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const discountCode = await tx.discountCode.findUnique({
+        where: { code },
+        include: { campaign: { select: { id: true, name: true } } },
+      });
+
+      if (!discountCode) {
+        throw new NotFoundException('Discount code not found');
+      }
+
+      if (
+        discountCode.expiresAt &&
+        discountCode.expiresAt.getTime() <= Date.now()
+      ) {
+        throw new BadRequestException('Discount code has expired');
+      }
+
+      if (discountCode.redemptionCount >= discountCode.usageLimit) {
+        throw new BadRequestException('Discount code usage limit reached');
+      }
+
+      const updatedDiscountCode = await tx.discountCode.update({
+        where: { id: discountCode.id },
+        data: { redemptionCount: { increment: 1 } },
+        include: { campaign: { select: { id: true, name: true } } },
+      });
+
+      const redemption = await tx.redemption.create({
+        data: {
+          discountCodeId: discountCode.id,
+          campaignId: discountCode.campaignId,
+        },
+      });
+
+      return {
+        id: redemption.id,
+        redeemedAt: redemption.redeemedAt.toISOString(),
+        discountCode: this.serializeDiscountCode(updatedDiscountCode),
+      };
+    });
+  }
+
   private async ensureCampaignExists(campaignId: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },

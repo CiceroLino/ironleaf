@@ -16,6 +16,11 @@ export class DiscountCodesController {
     return this.discountCodesService.findAll();
   }
 
+  @Post(':code/redeem')
+  redeem(@Param('code') code: string) {
+    return this.discountCodesService.redeem(code);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.discountCodesService.findOne(id);

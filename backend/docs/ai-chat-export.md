@@ -136,3 +136,10 @@ Third implementation chunk adds discount-code management:
 - Added endpoints for creating, listing, and viewing discount codes.
 - Added validation for campaign existence, duplicate codes, fixed-discount currency, and future expiration dates.
 - Added e2e coverage for percent and fixed discount-code creation plus list/detail retrieval.
+
+Fourth implementation chunk adds redemption:
+
+- Added `POST /discount-codes/:code/redeem`.
+- Added transaction-backed redemption logic.
+- Rejected expired codes and codes that reached their usage limit without recording redemption rows.
+- Added e2e coverage for successful redemption, expired codes, and usage-limit failures.

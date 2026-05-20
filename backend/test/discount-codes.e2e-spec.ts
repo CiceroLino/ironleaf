@@ -104,6 +104,80 @@ describe('Discount codes API (e2e)', () => {
     );
   });
 
+  it('redeems a valid discount code and records usage', async () => {
+    await prisma.discountCode.create({
+      data: {
+        code: 'WELCOME20',
+        campaignId,
+        discountType: 'PERCENT',
+        discountValue: 20,
+        usageLimit: 2,
+      },
+    });
+
+    const redeemResponse = await request(app.getHttpServer())
+      .post('/discount-codes/WELCOME20/redeem')
+      .expect(201);
+
+    expect(redeemResponse.body).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        redeemedAt: expect.any(String),
+        discountCode: expect.objectContaining({
+          code: 'WELCOME20',
+          redemptionCount: 1,
+        }),
+      }),
+    );
+
+    await expect(prisma.redemption.count()).resolves.toBe(1);
+  });
+
+  it('rejects expired discount codes without recording usage', async () => {
+    await prisma.discountCode.create({
+      data: {
+        code: 'OLD10',
+        campaignId,
+        discountType: 'PERCENT',
+        discountValue: 10,
+        expiresAt: new Date('2000-01-01T00:00:00.000Z'),
+        usageLimit: 2,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/discount-codes/OLD10/redeem')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Discount code has expired');
+      });
+
+    await expect(prisma.redemption.count()).resolves.toBe(0);
+  });
+
+  it('rejects discount codes that reached their usage limit', async () => {
+    await prisma.discountCode.create({
+      data: {
+        code: 'LIMITED',
+        campaignId,
+        discountType: 'FIXED',
+        discountValue: 5,
+        currency: 'USD',
+        usageLimit: 1,
+        redemptionCount: 1,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/discount-codes/LIMITED/redeem')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body.message).toBe('Discount code usage limit reached');
+      });
+
+    await expect(prisma.redemption.count()).resolves.toBe(0);
+  });
+
   afterEach(async () => {
     await app.close();
   });

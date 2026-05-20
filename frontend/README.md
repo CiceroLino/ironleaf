@@ -4,7 +4,7 @@ React and Next.js client for the internal discount code tool. The app consumes
 the NestJS backend on port `3000` and runs locally on port `3001`.
 
 <p>
-  <img src="./docs/images/dashboard.png" alt="Discount code dashboard screenshot" />
+  <img src="./docs/images/frontend.png" alt="Discount code dashboard screenshot" />
 </p>
 
 <p>

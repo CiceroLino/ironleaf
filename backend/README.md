@@ -5,7 +5,7 @@ The service uses Prisma with SQLite so the project can be run locally without a
 production database.
 
 <p>
-  <img src="./docs/images/swagger.png" alt="Swagger API documentation screenshot" />
+  <img src="./docs/images/backend.png" alt="Swagger API documentation screenshot" />
 </p>
 
 ## Tech Stack

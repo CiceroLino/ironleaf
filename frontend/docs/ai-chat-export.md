@@ -6004,5 +6004,619 @@ Resolve the cves and make a commit of it
 
 ─ Worked for 9m 28s ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
- 
-› Find and fix a bug in @filename
+Wow, I cant see Example Value Schema on swagger nor a description
+
+
+• Using find-docs/Context7 for current @nestjs/swagger behavior and systematic-debugging for the Swagger UI mismatch. I’ll verify the generated OpenAPI JSON directly, then patch the docs metadata the UI actually renders.
+
+• Explored
+  └ Read SKILL.md (superpowers:systematic-debugging skill), SKILL.md (superpowers:test-driven-development skill)
+
+• Called context7.resolve-library-id({"libraryName":"NestJS Swagger","query":"NestJS Swagger ApiOperation ApiBody ApiResponse examples description request body schema Swagger UI Example Value Schema"})
+  └ Available Libraries:
+
+    - Title: Nest Swagger
+    - Context7-compatible library ID: /nestjs/swagger
+    - Description: NestJS Swagger is a module for NestJS that integrates OpenAPI (Swagger) for API documentation and generation.
+    - Code Snippets: 24
+    - Source Reputation: High
+    - Benchmark Score: 79.83
+    ----------
+    - Title: Swagger
+    - Context7-compatible library ID: /websites/swagger_io
+    - Description: Swagger is a comprehensive suite of tools for designing, building, documenting, and testing APIs using the OpenAPI and AsyncAPI specifications.
+    - Code Snippets: 923
+    - Source Reputation: High
+    - Benchmark Score: 68.78
+    ----------
+    - Title: Swagger UI
+    - Context7-compatible library ID: /swagger-api/swagger-ui
+    - Description: Swagger UI allows developers to visualize and interact with API resources through automatically generated visual documentation from OpenAPI specifications without implementing logic.
+    - Code Snippets: 387
+    - Source Reputation: High
+    - Benchmark Score: 86
+    ----------
+    - Title: Swagger
+    - Context7-compatible library ID: /swagger-api/swagger.io-docs
+    - Description: Swagger is an open-source suite of tools for API development, including the OpenAPI Specificatio...
+
+• Called
+  └ context7.query-docs({"libraryId":"/nestjs/swagger","query":"Document NestJS controller operations request body and responses in Swagger UI with @ApiOperation @ApiBody @ApiResponse @ApiCreatedResponse examples description schema"})
+    ### Documenting API Operations with @ApiOperation
+
+    Source: https://context7.com/nestjs/swagger/llms.txt
+
+    Demonstrates how to use the @ApiOperation decorator to define summaries, descriptions, operation IDs, and deprecation status for controller methods.
+
+    ```typescript
+    import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+    import { ApiOperation, ApiTags } from '@nestjs/swagger';
+
+    @ApiTags('pets')
+    @Controller('pets')
+    export class PetsController {
+      @Get()
+      @ApiOperation({
+        summary: 'List all pets',
+        description: 'Returns a paginated list of all pets in the system. Supports filtering by status and tag.',
+        operationId: 'listPets',
+      })
+      findAll() {
+        return [];
+      }
+
+      @Get(':id')
+      @ApiOperation({
+        summary: 'Get a pet by ID',
+        description: 'Returns detailed information about a specific pet',
+      })
+      findOne(@Param('id') id: string) {
+        return { id };
+      }
+
+      @Post()
+      @ApiOperation({
+        summary: 'Create a new pet',
+        description: 'Creates a new pet and returns the created resource',
+      })
+      create(@Body() createPetDto: any) {
+        return createPetDto;
+      }
+
+      @Delete(':id')
+      @ApiOperation({
+        summary...
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• The docs confirm the UI sections you’re looking for come from operation-level decorators like @ApiOperation, @ApiBody, and response decorators, not just DTO property decorators. I’m checking the generated /api-json and controller files
+  now to pin the gap before editing.
+
+• Explored
+  └ Read campaigns.controller.ts, discount-codes.controller.ts
+
+• Ran git status --short
+  └  D docs/ai-chat-export.md
+
+• Explored
+  └ Read swagger.e2e-spec.ts
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Root cause: the DTO schemas have property examples, but the controllers don’t define operation summaries/descriptions, request-body examples, or response examples. Swagger UI’s visible “Example Value / Schema” panels are driven by that
+  operation-level OpenAPI metadata. I also noticed docs/ai-chat-export.md is currently deleted in the working tree; I’m leaving that untouched since it wasn’t part of this bug report.
+
+• Edited backend/test/swagger.e2e-spec.ts (+101 -1)
+     13    };
+     14 -  paths: Record<string, unknown>;
+     14 +  paths: Record<
+     15 +    string,
+     16 +    Record<
+     17 +      string,
+     18 +      {
+     19 +        summary?: string;
+     20 +        description?: string;
+     21 +        requestBody?: {
+     22 +          description?: string;
+     23 +          content?: {
+     24 +            'application/json'?: {
+     25 +              examples?: Record<
+     26 +                string,
+     27 +                {
+     28 +                  summary?: string;
+     29 +                  value?: Record<string, unknown>;
+     30 +                }
+     31 +              >;
+     32 +            };
+     33 +          };
+     34 +        };
+     35 +        responses?: Record<
+     36 +          string,
+     37 +          {
+     38 +            description?: string;
+     39 +            content?: {
+     40 +              'application/json'?: {
+     41 +                examples?: Record<
+     42 +                  string,
+     43 +                  {
+     44 +                    summary?: string;
+     45 +                    value?: Record<string, unknown>;
+     46 +                  }
+     47 +                >;
+     48 +              };
+     49 +            };
+     50 +          }
+     51 +        >;
+     52 +      }
+     53 +    >
+     54 +  >;
+     55    components: {
+        ⋮
+    137
+    138 +  it('documents operations with visible Swagger UI examples and descriptions', async () => {
+    139 +    const response = await request(app.getHttpServer())
+    140 +      .get('/api-json')
+    141 +      .expect(200);
+    142 +    const document = response.body as unknown as OpenApiDocument;
+    143 +
+    144 +    const createCampaign = document.paths['/campaigns'].post;
+    145 +    const createDiscountCode = document.paths['/discount-codes'].post;
+    146 +    const redeemDiscountCode =
+    147 +      document.paths['/discount-codes/{code}/redeem'].post;
+    148 +
+    149 +    expect(createCampaign).toMatchObject({
+    150 +      summary: 'Create a campaign',
+    151 +      description: 'Creates a campaign label that discount codes can be grouped under.',
+    152 +    });
+    153 +    expect(
+    154 +      createCampaign.requestBody?.content?.['application/json']?.examples
+    155 +        ?.blackFriday.value,
+    156 +    ).toEqual({ name: 'Black Friday' });
+    157 +    expect(
+    158 +      createCampaign.responses?.['201']?.content?.['application/json']?.examples
+    159 +        ?.created.value,
+    160 +    ).toMatchObject({
+    161 +      id: 'cm_campaign_black_friday',
+    162 +      name: 'Black Friday',
+    163 +    });
+    164 +
+    165 +    expect(createDiscountCode).toMatchObject({
+    166 +      summary: 'Create a discount code',
+    167 +      description:
+    168 +        'Creates a promotional discount code attached to an existing campaign.',
+    169 +    });
+    170 +    expect(
+    171 +      createDiscountCode.requestBody?.content?.['application/json']?.examples
+    172 +        ?.percentage.value,
+    173 +    ).toMatchObject({
+    174 +      code: 'SUMMER20',
+    175 +      discountType: 'PERCENT',
+    176 +      discountValue: 20,
+    177 +    });
+    178 +    expect(createDiscountCode.responses?.['201']?.description).toBe(
+    179 +      'Discount code created',
+    180 +    );
+    181 +
+    182 +    expect(redeemDiscountCode).toMatchObject({
+    183 +      summary: 'Redeem a discount code',
+    184 +      description:
+    185 +        'Applies a discount code if it is active and has remaining usage.',
+    186 +    });
+    187 +    expect(
+    188 +      redeemDiscountCode.responses?.['200']?.content?.['application/json']
+    189 +        ?.examples?.redeemed.value,
+    190 +    ).toMatchObject({
+    191 +      discountCode: {
+    192 +        code: 'SUMMER20',
+    193 +        redemptionCount: 1,
+    194 +      },
+    195 +    });
+    196 +  });
+    197 +
+    198    afterEach(async () => {
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• I added a failing Swagger e2e assertion that checks the exact metadata Swagger UI needs: operation description plus request/response examples. I’m running that targeted test to confirm the failure before patching controllers.
+
+• Ran pnpm test:e2e -- swagger.e2e-spec.ts
+  └ $ prisma generate && NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand -- swagger.e2e-spec.ts
+    Loaded Prisma config from prisma.config.ts.
+    … +55 lines (ctrl + t to view transcript)
+    Ran all test suites matching swagger.e2e-spec.ts.
+    [ELIFECYCLE] Command failed with exit code 1.
+
+• Waited for background terminal
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• The failing output confirms the controller operations are bare: default operation IDs, empty response descriptions, and no request examples. I’m adding explicit Swagger operation/body/response metadata to the campaign and discount-code
+  controllers.
+
+• Edited backend/src/campaigns/campaigns.controller.ts (+85 -0)
+      1  import { Body, Controller, Get, Post } from '@nestjs/common';
+      2 +import {
+      3 +  ApiBody,
+      4 +  ApiConflictResponse,
+      5 +  ApiCreatedResponse,
+      6 +  ApiOkResponse,
+      7 +  ApiOperation,
+      8 +  ApiTags,
+      9 +} from '@nestjs/swagger';
+     10  import { CampaignsService } from './campaigns.service';
+        ⋮
+     12
+     13 +@ApiTags('campaigns')
+     14  @Controller('campaigns')
+        ⋮
+     18    @Post()
+     19 +  @ApiOperation({
+     20 +    summary: 'Create a campaign',
+     21 +    description:
+     22 +      'Creates a campaign label that discount codes can be grouped under.',
+     23 +  })
+     24 +  @ApiBody({
+     25 +    type: CreateCampaignDto,
+     26 +    description: 'Campaign creation payload',
+     27 +    examples: {
+     28 +      blackFriday: {
+     29 +        summary: 'Black Friday campaign',
+     30 +        value: { name: 'Black Friday' },
+     31 +      },
+     32 +    },
+     33 +  })
+     34 +  @ApiCreatedResponse({
+     35 +    description: 'Campaign created',
+     36 +    examples: {
+     37 +      created: {
+     38 +        summary: 'Created campaign',
+     39 +        value: {
+     40 +          id: 'cm_campaign_black_friday',
+     41 +          name: 'Black Friday',
+     42 +          createdAt: '2026-05-20T12:00:00.000Z',
+     43 +          updatedAt: '2026-05-20T12:00:00.000Z',
+     44 +        },
+     45 +      },
+     46 +    },
+     47 +  })
+     48 +  @ApiConflictResponse({ description: 'Campaign name already exists' })
+     49    create(@Body() createCampaignDto: CreateCampaignDto) {
+        ⋮
+     53    @Get('usage-summary')
+     54 +  @ApiOperation({
+     55 +    summary: 'Get campaign usage summary',
+     56 +    description:
+     57 +      'Returns discount-code and redemption totals grouped by campaign.',
+     58 +  })
+     59 +  @ApiOkResponse({
+     60 +    description: 'Campaign usage summary',
+     61 +    examples: {
+     62 +      summary: {
+     63 +        summary: 'Usage grouped by campaign',
+     64 +        value: [
+     65 +          {
+     66 +            campaign: {
+     67 +              id: 'cm_campaign_black_friday',
+     68 +              name: 'Black Friday',
+     69 +            },
+     70 +            totalDiscountCodes: 2,
+     71 +            totalRedemptions: 17,
+     72 +            discountCodes: [
+     73 +              { id: 'dc_summer20', code: 'SUMMER20', redemptionCount: 12 },
+     74 +            ],
+     75 +          },
+     76 +        ],
+     77 +      },
+     78 +    },
+     79 +  })
+     80    usageSummary() {
+        ⋮
+     84    @Get()
+     85 +  @ApiOperation({
+     86 +    summary: 'List campaigns',
+     87 +    description: 'Returns all campaign labels available for discount codes.',
+     88 +  })
+     89 +  @ApiOkResponse({
+     90 +    description: 'Campaign list',
+     91 +    examples: {
+     92 +      campaigns: {
+     93 +        summary: 'Campaigns',
+     94 +        value: [
+     95 +          {
+     96 +            id: 'cm_campaign_black_friday',
+     97 +            name: 'Black Friday',
+     98 +            createdAt: '2026-05-20T12:00:00.000Z',
+     99 +            updatedAt: '2026-05-20T12:00:00.000Z',
+    100 +          },
+    101 +        ],
+    102 +      },
+    103 +    },
+    104 +  })
+    105    findAll() {
+
+• Edited backend/src/discount-codes/discount-codes.controller.ts (+160 -0)
+      1  import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+      2 +import {
+      3 +  ApiBadRequestResponse,
+      4 +  ApiBody,
+      5 +  ApiConflictResponse,
+      6 +  ApiCreatedResponse,
+      7 +  ApiNotFoundResponse,
+      8 +  ApiOkResponse,
+      9 +  ApiOperation,
+     10 +  ApiParam,
+     11 +  ApiTags,
+     12 +} from '@nestjs/swagger';
+     13  import { CreateDiscountCodeDto } from './dto/create-discount-code.dto';
+        ⋮
+     15
+     16 +@ApiTags('discount-codes')
+     17  @Controller('discount-codes')
+        ⋮
+     21    @Post()
+     22 +  @ApiOperation({
+     23 +    summary: 'Create a discount code',
+     24 +    description:
+     25 +      'Creates a promotional discount code attached to an existing campaign.',
+     26 +  })
+     27 +  @ApiBody({
+     28 +    type: CreateDiscountCodeDto,
+     29 +    description: 'Discount code creation payload',
+     30 +    examples: {
+     31 +      percentage: {
+     32 +        summary: 'Percentage discount',
+     33 +        value: {
+     34 +          code: 'SUMMER20',
+     35 +          campaignId: 'cm_campaign_summer',
+     36 +          discountType: 'PERCENT',
+     37 +          discountValue: 20,
+     38 +          expiresAt: '2026-12-31',
+     39 +          usageLimit: 100,
+     40 +        },
+     41 +      },
+     42 +      fixed: {
+     43 +        summary: 'Fixed amount discount',
+     44 +        value: {
+     45 +          code: 'WELCOME15',
+     46 +          campaignId: 'cm_campaign_welcome',
+     47 +          discountType: 'FIXED',
+     48 +          discountValue: 15,
+     49 +          currency: 'USD',
+     50 +          expiresAt: '2026-12-31',
+     51 +          usageLimit: 50,
+     52 +        },
+     53 +      },
+     54 +    },
+     55 +  })
+     56 +  @ApiCreatedResponse({
+     57 +    description: 'Discount code created',
+     58 +    examples: {
+     59 +      created: {
+     60 +        summary: 'Created discount code',
+     61 +        value: {
+     62 +          id: 'dc_summer20',
+     63 +          code: 'SUMMER20',
+     64 +          campaignId: 'cm_campaign_summer',
+     65 +          discountType: 'PERCENT',
+     66 +          discountValue: 20,
+     67 +          currency: null,
+     68 +          expiresAt: '2026-12-31T00:00:00.000Z',
+     69 +          usageLimit: 100,
+     70 +          redemptionCount: 0,
+     71 +          createdAt: '2026-05-20T12:00:00.000Z',
+     72 +          updatedAt: '2026-05-20T12:00:00.000Z',
+     73 +        },
+     74 +      },
+     75 +    },
+     76 +  })
+     77 +  @ApiBadRequestResponse({ description: 'Invalid discount code payload' })
+     78 +  @ApiNotFoundResponse({ description: 'Campaign not found' })
+     79 +  @ApiConflictResponse({ description: 'Discount code already exists' })
+     80    create(@Body() createDiscountCodeDto: CreateDiscountCodeDto) {
+        ⋮
+     84    @Get()
+     85 +  @ApiOperation({
+     86 +    summary: 'List discount codes',
+     87 +    description:
+     88 +      'Returns all discount codes with campaign labels and redemption counts.',
+     89 +  })
+     90 +  @ApiOkResponse({
+     91 +    description: 'Discount code list',
+     92 +    examples: {
+     93 +      discountCodes: {
+     94 +        summary: 'Discount codes',
+     95 +        value: [
+     96 +          {
+     97 +            id: 'dc_summer20',
+     98 +            code: 'SUMMER20',
+     99 +            campaignId: 'cm_campaign_summer',
+    100 +            campaign: { id: 'cm_campaign_summer', name: 'Summer Campaign' },
+    101 +            discountType: 'PERCENT',
+    102 +            discountValue: 20,
+    103 +            currency: null,
+    104 +            expiresAt: '2026-12-31T00:00:00.000Z',
+    105 +            usageLimit: 100,
+    106 +            redemptionCount: 0,
+    107 +          },
+    108 +        ],
+    109 +      },
+    110 +    },
+    111 +  })
+    112    findAll() {
+        ⋮
+    116    @Post(':code/redeem')
+    117 +  @ApiOperation({
+    118 +    summary: 'Redeem a discount code',
+    119 +    description:
+    120 +      'Applies a discount code if it is active and has remaining usage.',
+    121 +  })
+    122 +  @ApiParam({
+    123 +    name: 'code',
+    124 +    description: 'Alphanumeric code string to redeem',
+    125 +    example: 'SUMMER20',
+    126 +  })
+    127 +  @ApiOkResponse({
+    128 +    description: 'Discount code redeemed',
+    129 +    examples: {
+    130 +      redeemed: {
+    131 +        summary: 'Successful redemption',
+    132 +        value: {
+    133 +          id: 'rdm_summer20_1',
+    134 +          redeemedAt: '2026-05-20T12:00:00.000Z',
+    135 +          discountCode: {
+    136 +            id: 'dc_summer20',
+    137 +            code: 'SUMMER20',
+    138 +            redemptionCount: 1,
+    139 +            usageLimit: 100,
+    140 +          },
+    141 +        },
+    142 +      },
+    143 +    },
+    144 +  })
+    145 +  @ApiBadRequestResponse({
+    146 +    description: 'Discount code expired or usage limit reached',
+    147 +  })
+    148 +  @ApiNotFoundResponse({ description: 'Discount code not found' })
+    149    redeem(@Param('code') code: string) {
+        ⋮
+    153    @Get(':id')
+    154 +  @ApiOperation({
+    155 +    summary: 'Get discount code details',
+    156 +    description:
+    157 +      'Returns one discount code by ID with campaign and redemption metadata.',
+    158 +  })
+    159 +  @ApiParam({
+    160 +    name: 'id',
+    161 +    description: 'Discount code ID',
+    162 +    example: 'dc_summer20',
+    163 +  })
+    164 +  @ApiOkResponse({
+    165 +    description: 'Discount code detail',
+    166 +    examples: {
+    167 +      discountCode: {
+    168 +        summary: 'Discount code detail',
+    169 +        value: {
+    170 +          id: 'dc_summer20',
+    171 +          code: 'SUMMER20',
+    172 +          campaignId: 'cm_campaign_summer',
+    173 +          campaign: { id: 'cm_campaign_summer', name: 'Summer Campaign' },
+    174 +          discountType: 'PERCENT',
+    175 +          discountValue: 20,
+    176 +          currency: null,
+    177 +          expiresAt: '2026-12-31T00:00:00.000Z',
+    178 +          usageLimit: 100,
+    179 +          redemptionCount: 0,
+    180 +        },
+    181 +      },
+    182 +    },
+    183 +  })
+    184 +  @ApiNotFoundResponse({ description: 'Discount code not found' })
+    185    findOne(@Param('id') id: string) {
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• The controllers now define operation descriptions, request body examples, response examples, and error descriptions. I’m rerunning the Swagger e2e test, then I’ll run backend lint/test/build before committing.
+
+• Ran pnpm test:e2e -- swagger.e2e-spec.ts
+  └ $ prisma generate && NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand -- swagger.e2e-spec.ts
+    Loaded Prisma config from prisma.config.ts.
+    … +11 lines (ctrl + t to view transcript)
+    Time:        1.045 s
+    Ran all test suites matching swagger.e2e-spec.ts.
+
+• Ran pnpm test
+  └ $ prisma generate && NODE_OPTIONS=--experimental-vm-modules jest
+    Loaded Prisma config from prisma.config.ts.
+    … +12 lines (ctrl + t to view transcript)
+    Time:        0.813 s, estimated 1 s
+    Ran all test suites.
+
+• Ran pnpm run lint
+  └ $ eslint "{src,apps,libs,test}/**/*.ts" --fix
+
+• Ran pnpm run build
+  └ $ prisma generate && nest build
+    Loaded Prisma config from prisma.config.ts.
+    … +11 lines (ctrl + t to view transcript)
+    >  SWC  Running...
+    Successfully compiled: 19 files with swc (97.55ms)
+
+• Waited for background terminal
+
+• Waited for background terminal
+
+• Waited for background terminal
+
+• Waited for background terminal
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Swagger e2e, backend lint, unit tests, and build pass. I’m checking the diff and will stage only the Swagger-related backend files, leaving the existing deleted root export file untouched.
+
+• Ran git diff --stat
+  └  backend/src/campaigns/campaigns.controller.ts      |  85 +++++++++++
+     .../discount-codes/discount-codes.controller.ts    | 160 +++++++++++++++++++++
+     backend/test/swagger.e2e-spec.ts                   | 103 ++++++++++++-
+     docs/ai-chat-export.md                             |  66 ---------
+     4 files changed, 347 insertions(+), 67 deletions(-)
+
+• Ran git status --short
+  └  M backend/src/campaigns/campaigns.controller.ts
+     M backend/src/discount-codes/discount-codes.controller.ts
+     M backend/test/swagger.e2e-spec.ts
+     D docs/ai-chat-export.md
+
+• Ran git diff -- backend/src/campaigns/campaigns.controller.ts backend/src/discount-codes/discount-codes.controller.ts backend/test/swagger.e2e-spec.ts
+  └ diff --git a/backend/src/campaigns/campaigns.controller.ts b/backend/src/campaigns/campaigns.controller.ts
+    index 671b710..dbaad56 100644
+    … +421 lines (ctrl + t to view transcript)
+         await app.close();
+       });
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• The diff is focused on Swagger docs and tests. There’s an unrelated deletion of docs/ai-chat-export.md in the working tree, so I won’t stage or commit that.
+
+• Ran git add backend/src/campaigns/campaigns.controller.ts backend/src/discount-codes/discount-codes.controller.ts backend/test/swagger.e2e-spec.ts
+  └ (no output)
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Staging worked, but the commit hit the same sandbox Git metadata restriction. I’m rerunning only the commit with elevated Git write permission.
+
+✔ You approved codex to run git commit -m "docs(backend): enrich swagger examples" this time
+
+• Ran git commit -m "docs(backend): enrich swagger examples"
+  └ [main 6a2dbe5] docs(backend): enrich swagger examples
+     3 files changed, 347 insertions(+), 1 deletion(-)
+
+• Ran git status --short
+  └  D docs/ai-chat-export.md
+
+• Ran git log --oneline -1
+  └ 6a2dbe5 docs(backend): enrich swagger examples
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Fixed and committed:
+
+  6a2dbe5 docs(backend): enrich swagger examples
+
+  Root cause: DTO @ApiProperty metadata was present, but Swagger UI’s visible operation description and “Example Value / Schema” panels need operation-level decorators. I added:
+
+  - @ApiOperation
+  - @ApiBody with request examples
+  - @ApiCreatedResponse / @ApiOkResponse with response examples
+  - error response descriptions
+  - @ApiParam
+  - @ApiTags
+
+  Verification passed:
+
+  - backend pnpm test:e2e -- swagger.e2e-spec.ts
+  - backend pnpm run lint
+  - backend pnpm test
+  - backend pnpm run build
+
+  Note: docs/ai-chat-export.md is currently deleted in your working tree, but I did not touch or commit that deletion.
+

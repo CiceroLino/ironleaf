@@ -29,4 +29,37 @@ export class CampaignsService {
       orderBy: { createdAt: 'asc' },
     });
   }
+
+  async usageSummary() {
+    const campaigns = await this.prisma.campaign.findMany({
+      include: {
+        discountCodes: {
+          select: {
+            id: true,
+            code: true,
+            redemptionCount: true,
+            usageLimit: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+        _count: {
+          select: {
+            discountCodes: true,
+            redemptions: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return campaigns.map((campaign) => ({
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+      },
+      totalDiscountCodes: campaign._count.discountCodes,
+      totalRedemptions: campaign._count.redemptions,
+      discountCodes: campaign.discountCodes,
+    }));
+  }
 }

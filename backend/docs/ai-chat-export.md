@@ -143,3 +143,10 @@ Fourth implementation chunk adds redemption:
 - Added transaction-backed redemption logic.
 - Rejected expired codes and codes that reached their usage limit without recording redemption rows.
 - Added e2e coverage for successful redemption, expired codes, and usage-limit failures.
+
+Fifth implementation chunk adds campaign usage summary and completes verification:
+
+- Added `GET /campaigns/usage-summary`.
+- Returned per-campaign totals for discount codes and redemptions.
+- Included per-code usage counts in each campaign summary.
+- Verified with unit tests, e2e tests, and production build.

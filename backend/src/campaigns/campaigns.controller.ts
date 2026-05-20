@@ -11,6 +11,11 @@ export class CampaignsController {
     return this.campaignsService.create(createCampaignDto);
   }
 
+  @Get('usage-summary')
+  usageSummary() {
+    return this.campaignsService.usageSummary();
+  }
+
   @Get()
   findAll() {
     return this.campaignsService.findAll();

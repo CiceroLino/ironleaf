@@ -150,3 +150,17 @@ Fifth implementation chunk adds campaign usage summary and completes verificatio
 - Returned per-campaign totals for discount codes and redemptions.
 - Included per-code usage counts in each campaign summary.
 - Verified with unit tests, e2e tests, and production build.
+
+### User
+
+Requested updating the chat history in the docs folder, then requested Swagger and SWC support to improve app speed.
+
+### Assistant
+
+Started Swagger and SWC work in separate commit-sized chunks. Swagger chunk:
+
+- Installed `@nestjs/swagger`.
+- Added `setupSwagger(app)` helper.
+- Mounted Swagger UI at `/api` and OpenAPI JSON at `/api-json`.
+- Added e2e coverage for the OpenAPI JSON document.
+- Explicitly denied `@scarf/scarf` build script in pnpm build approvals.

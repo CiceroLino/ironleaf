@@ -164,3 +164,11 @@ Started Swagger and SWC work in separate commit-sized chunks. Swagger chunk:
 - Mounted Swagger UI at `/api` and OpenAPI JSON at `/api-json`.
 - Added e2e coverage for the OpenAPI JSON document.
 - Explicitly denied `@scarf/scarf` build script in pnpm build approvals.
+
+SWC chunk:
+
+- Installed `@swc/cli`, `@swc/core`, and `@swc/jest`.
+- Configured Nest to use the SWC builder with type checking.
+- Added `.swcrc` with Nest-compatible decorator metadata settings.
+- Switched Jest transforms from `ts-jest` to `@swc/jest`.
+- Added a config test to lock the SWC setup.

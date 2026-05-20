@@ -2,6 +2,7 @@ allowBuilds:
   '@nestjs/core': false
   '@prisma/engines': true
   '@scarf/scarf': false
+  '@swc/core': true
   better-sqlite3: true
   prisma: true
   unrs-resolver: true

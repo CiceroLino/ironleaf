@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { createDiscountCode } from "@/lib/discount-codes/api";
+import { createDiscountCode, getCampaigns } from "@/lib/discount-codes/api";
 import type {
+  Campaign,
   CreateDiscountCodeInput,
   DiscountCode,
   DiscountType,
@@ -11,18 +12,38 @@ import type {
 
 const initialForm: CreateDiscountCodeInput = {
   code: "",
-  discountType: "percentage",
+  campaignId: "",
+  discountType: "PERCENT",
   discountValue: 10,
   expiresAt: "",
   usageLimit: 100,
-  campaign: "",
 };
 
 export function DiscountCodeForm() {
   const [form, setForm] = useState<CreateDiscountCodeInput>(initialForm);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [createdCode, setCreatedCode] = useState<DiscountCode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadCampaigns = async () => {
+      try {
+        const nextCampaigns = await getCampaigns();
+        setCampaigns(nextCampaigns);
+        setForm((current) => ({
+          ...current,
+          campaignId: current.campaignId || nextCampaigns[0]?.id || "",
+        }));
+      } catch (caught) {
+        setError(
+          caught instanceof Error ? caught.message : "Unable to load campaigns",
+        );
+      }
+    };
+
+    void loadCampaigns();
+  }, []);
 
   const updateForm = <Key extends keyof CreateDiscountCodeInput>(
     key: Key,
@@ -41,7 +62,8 @@ export function DiscountCodeForm() {
       const created = await createDiscountCode({
         ...form,
         code: form.code.trim().toUpperCase(),
-        campaign: form.campaign.trim(),
+        currency: form.discountType === "FIXED" ? "USD" : undefined,
+        expiresAt: form.expiresAt || undefined,
       });
       setCreatedCode(created);
       setForm(initialForm);
@@ -88,12 +110,21 @@ export function DiscountCodeForm() {
 
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           Campaign
-          <input
-            value={form.campaign}
-            onChange={(event) => updateForm("campaign", event.target.value)}
+          <select
+            value={form.campaignId}
+            onChange={(event) => updateForm("campaignId", event.target.value)}
             required
             className="h-11 rounded-md border border-slate-300 px-3 text-slate-950 outline-none ring-emerald-500 transition focus:ring-2"
-          />
+          >
+            <option value="" disabled>
+              Select a campaign
+            </option>
+            {campaigns.map((campaign) => (
+              <option key={campaign.id} value={campaign.id}>
+                {campaign.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -105,8 +136,8 @@ export function DiscountCodeForm() {
             }
             className="h-11 rounded-md border border-slate-300 px-3 text-slate-950 outline-none ring-emerald-500 transition focus:ring-2"
           >
-            <option value="percentage">Percentage</option>
-            <option value="fixed">Fixed amount</option>
+            <option value="PERCENT">Percentage</option>
+            <option value="FIXED">Fixed amount</option>
           </select>
         </label>
 

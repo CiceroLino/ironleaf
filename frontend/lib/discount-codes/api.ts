@@ -1,9 +1,28 @@
 import type {
+  Campaign,
+  CreateCampaignInput,
   CreateDiscountCodeInput,
   DiscountCode,
   RedeemDiscountCodeResult,
   UsageSummary,
 } from "./types";
+
+type BackendRedeemResult = {
+  id: string;
+  redeemedAt: string;
+  discountCode: DiscountCode;
+};
+
+type BackendCampaignUsage = {
+  campaign: Campaign;
+  totalDiscountCodes: number;
+  totalRedemptions: number;
+  discountCodes: Array<{
+    code: string;
+    redemptionCount: number;
+    usageLimit?: number;
+  }>;
+};
 
 type RequestOptions = {
   method?: "GET" | "POST";
@@ -59,11 +78,62 @@ export const createDiscountCode = (input: CreateDiscountCodeInput) =>
     body: input,
   });
 
-export const redeemDiscountCode = (id: string) =>
-  request<RedeemDiscountCodeResult>(
-    `/discount-codes/${encodeURIComponent(id)}/redeem`,
+export const redeemDiscountCode = async (code: string) => {
+  const redemption = await request<BackendRedeemResult>(
+    `/discount-codes/${encodeURIComponent(code)}/redeem`,
     { method: "POST" },
   );
 
-export const getUsageSummary = () =>
-  request<UsageSummary>("/discount-codes/usage-summary");
+  return {
+    redemptionId: redemption.id,
+    redeemedAt: redemption.redeemedAt,
+    code: redemption.discountCode,
+  } satisfies RedeemDiscountCodeResult;
+};
+
+export const getCampaigns = () => request<Campaign[]>("/campaigns");
+
+export const createCampaign = (input: CreateCampaignInput) =>
+  request<Campaign>("/campaigns", {
+    method: "POST",
+    body: input,
+  });
+
+export const getUsageSummary = async () => {
+  const campaignUsage = await request<BackendCampaignUsage[]>(
+    "/campaigns/usage-summary",
+  );
+
+  return campaignUsage.reduce<UsageSummary>(
+    (summary, campaign) => {
+      const expiredCodes = 0;
+      const usageLimitReachedCodes = campaign.discountCodes.filter(
+        (code) =>
+          typeof code.usageLimit === "number" &&
+          code.redemptionCount >= code.usageLimit,
+      ).length;
+
+      summary.totalCodes += campaign.totalDiscountCodes;
+      summary.totalRedemptions += campaign.totalRedemptions;
+      summary.expiredCodes += expiredCodes;
+      summary.usageLimitReachedCodes += usageLimitReachedCodes;
+      summary.activeCodes =
+        summary.totalCodes - summary.expiredCodes - summary.usageLimitReachedCodes;
+      summary.campaigns.push({
+        campaign: campaign.campaign.name,
+        codeCount: campaign.totalDiscountCodes,
+        redemptionCount: campaign.totalRedemptions,
+      });
+
+      return summary;
+    },
+    {
+      totalCodes: 0,
+      totalRedemptions: 0,
+      activeCodes: 0,
+      expiredCodes: 0,
+      usageLimitReachedCodes: 0,
+      campaigns: [],
+    },
+  );
+};

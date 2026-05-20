@@ -52,12 +52,7 @@ export function DiscountDashboard() {
       setCodes((current) =>
         current.map((code) => (code.id === result.code.id ? result.code : code)),
       );
-
-      if (result.summary) {
-        setSummary(result.summary);
-      } else {
-        setSummary(await getUsageSummary());
-      }
+      setSummary(await getUsageSummary());
     } catch (caught) {
       setRedeemError(
         caught instanceof Error ? caught.message : "Unable to redeem code",
@@ -173,7 +168,7 @@ export function DiscountDashboard() {
                           </Link>
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-slate-700">
-                          {code.campaign}
+                          {code.campaign?.name ?? code.campaignId}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-slate-700">
                           {formatDiscount(code.discountType, code.discountValue)}
@@ -192,11 +187,11 @@ export function DiscountDashboard() {
                         <td className="whitespace-nowrap px-5 py-4 text-right">
                           <button
                             type="button"
-                            disabled={!canRedeem || redeemingId === code.id}
-                            onClick={() => void handleRedeem(code.id)}
+                            disabled={!canRedeem || redeemingId === code.code}
+                            onClick={() => void handleRedeem(code.code)}
                             className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45"
                           >
-                            {redeemingId === code.id ? "Redeeming..." : "Redeem"}
+                            {redeemingId === code.code ? "Redeeming..." : "Redeem"}
                           </button>
                         </td>
                       </tr>

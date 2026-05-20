@@ -1,7 +1,7 @@
 import type { DiscountCode, DiscountStatus, DiscountType } from "./types";
 
 export const formatDiscount = (type: DiscountType, value: number) => {
-  if (type === "percentage") {
+  if (type === "PERCENT") {
     return `${value}%`;
   }
 
@@ -26,9 +26,9 @@ export const deriveStatus = (code: DiscountCode): DiscountStatus => {
     return "usage_limit_reached";
   }
 
-  if (new Date(code.expiresAt) < new Date()) {
+  if (code.expiresAt && new Date(code.expiresAt) < new Date()) {
     return "expired";
   }
 
-  return code.status;
+  return code.status ?? "active";
 };

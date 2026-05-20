@@ -11,27 +11,33 @@ describe("DiscountCodeDetail", () => {
     vi.mocked(api.getDiscountCode).mockResolvedValue({
       id: "code-1",
       code: "BLACKFRIDAY",
-      discountType: "fixed",
+      campaignId: "campaign-1",
+      campaign: { id: "campaign-1", name: "Black Friday" },
+      discountType: "FIXED",
       discountValue: 20,
+      currency: "USD",
       expiresAt: "2026-11-30",
       usageLimit: 200,
       redemptionCount: 40,
-      campaign: "Black Friday",
       status: "active",
     });
   });
 
   it("renders a specific discount code and redeems it", async () => {
     vi.mocked(api.redeemDiscountCode).mockResolvedValue({
+      redemptionId: "redemption-1",
+      redeemedAt: "2026-05-20T00:00:00.000Z",
       code: {
         id: "code-1",
         code: "BLACKFRIDAY",
-        discountType: "fixed",
+        campaignId: "campaign-1",
+        campaign: { id: "campaign-1", name: "Black Friday" },
+        discountType: "FIXED",
         discountValue: 20,
+        currency: "USD",
         expiresAt: "2026-11-30",
         usageLimit: 200,
         redemptionCount: 41,
-        campaign: "Black Friday",
         status: "active",
       },
     });
@@ -46,6 +52,7 @@ describe("DiscountCodeDetail", () => {
 
     await user.click(screen.getByRole("button", { name: /redeem code/i }));
 
+    expect(api.redeemDiscountCode).toHaveBeenCalledWith("BLACKFRIDAY");
     expect(await screen.findByText("41 / 200")).toBeInTheDocument();
   });
 });

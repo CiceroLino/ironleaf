@@ -9,12 +9,13 @@ vi.mock("@/lib/discount-codes/api");
 const code = {
   id: "code-1",
   code: "SUMMER20",
-  discountType: "percentage" as const,
+  campaignId: "campaign-1",
+  campaign: { id: "campaign-1", name: "Summer" },
+  discountType: "PERCENT" as const,
   discountValue: 20,
   expiresAt: "2026-08-01",
   usageLimit: 10,
   redemptionCount: 3,
-  campaign: "Summer",
   status: "active" as const,
 };
 
@@ -52,8 +53,13 @@ describe("DiscountDashboard", () => {
 
   it("redeems a code from the list without reloading the page", async () => {
     vi.mocked(api.redeemDiscountCode).mockResolvedValue({
+      redemptionId: "redemption-1",
+      redeemedAt: "2026-05-20T00:00:00.000Z",
       code: { ...code, redemptionCount: 4 },
-      summary: { ...summary, totalRedemptions: 4 },
+    });
+    vi.mocked(api.getUsageSummary).mockResolvedValueOnce(summary).mockResolvedValueOnce({
+      ...summary,
+      totalRedemptions: 4,
     });
     const user = userEvent.setup();
 
@@ -62,7 +68,7 @@ describe("DiscountDashboard", () => {
     const row = await screen.findByRole("row", { name: /SUMMER20/i });
     await user.click(within(row).getByRole("button", { name: /redeem/i }));
 
-    expect(api.redeemDiscountCode).toHaveBeenCalledWith("code-1");
+    expect(api.redeemDiscountCode).toHaveBeenCalledWith("SUMMER20");
     expect(await screen.findByText("4 / 10")).toBeInTheDocument();
     expect(screen.getByText("4 total redemptions")).toBeInTheDocument();
   });

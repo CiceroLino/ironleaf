@@ -38,7 +38,11 @@ export function DiscountCodeDetail({ id }: { id: string }) {
     setIsRedeeming(true);
 
     try {
-      const result = await redeemDiscountCode(id);
+      if (!code) {
+        return;
+      }
+
+      const result = await redeemDiscountCode(code.code);
       setCode(result.code);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to redeem code");
@@ -73,7 +77,7 @@ export function DiscountCodeDetail({ id }: { id: string }) {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-                    {code.campaign}
+                    {code.campaign?.name ?? code.campaignId}
                   </p>
                   <h1 className="mt-2 text-3xl font-semibold text-slate-950">
                     {code.code}
@@ -89,7 +93,7 @@ export function DiscountCodeDetail({ id }: { id: string }) {
                   label="Discount"
                   value={formatDiscount(code.discountType, code.discountValue)}
                 />
-                <DetailItem label="Expires" value={code.expiresAt} />
+                <DetailItem label="Expires" value={code.expiresAt ?? "No expiry"} />
                 <DetailItem
                   label="Usage"
                   value={`${code.redemptionCount} / ${code.usageLimit}`}

@@ -122,3 +122,10 @@ Started implementation in commit-sized backend chunks. First chunk adds Prisma O
 - Approved required pnpm build scripts for Prisma and SQLite native packages.
 - Added Prisma schema/config, `PrismaModule`, and `PrismaService`.
 - Generated and applied the initial SQLite migration.
+
+Second implementation chunk adds campaigns:
+
+- Added `CampaignsModule`, controller, service, and create DTO.
+- Wired `PrismaModule` and `CampaignsModule` into `AppModule`.
+- Added a global validation pipe in `main.ts`.
+- Added e2e coverage for creating and listing campaigns.

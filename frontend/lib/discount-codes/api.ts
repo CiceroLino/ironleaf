@@ -21,11 +21,8 @@ export class ApiError extends Error {
 }
 
 const getApiBaseUrl = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!baseUrl) {
-    throw new ApiError("NEXT_PUBLIC_API_BASE_URL is not configured", 500);
-  }
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000";
 
   return baseUrl.replace(/\/$/, "");
 };

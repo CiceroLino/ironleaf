@@ -48,6 +48,19 @@ describe("discount code API client", () => {
     expect(codes[0].code).toBe("SUMMER20");
   });
 
+  it("defaults to the local backend on port 3000 when no API base URL is configured", async () => {
+    delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    const fetchMock = vi.fn(() => okResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getDiscountCodes();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3000/discount-codes",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("creates, reads, redeems, and summarizes discount codes with the expected endpoints", async () => {
     const fetchMock = vi
       .fn()

@@ -6,3 +6,5 @@ allowBuilds:
   better-sqlite3: true
   prisma: true
   unrs-resolver: true
+overrides:
+  '@hono/node-server': 1.19.13

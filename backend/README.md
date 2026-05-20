@@ -1,98 +1,154 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+# Discount Codes Backend
+
+NestJS API for creating, redeeming, and reporting on promotional discount codes.
+The service uses Prisma with SQLite so the project can be run locally without a
+production database.
+
+<p>
+  <img src="./docs/images/swagger.png" alt="Swagger API documentation screenshot" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Tech Stack
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- NestJS 11
+- TypeScript
+- Prisma 7
+- SQLite through `better-sqlite3`
+- Jest and Supertest
+- Swagger at `/api`
 
-## Description
+## Setup
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+Install dependencies from this directory:
 
 ```bash
-$ pnpm install
+pnpm install
 ```
 
-## Compile and run the project
+Generate the Prisma client:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm prisma:generate
 ```
 
-## Run tests
+Run the API on port `3000`:
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+pnpm start:dev
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The frontend is expected at `http://localhost:3001` by default. To allow another
+origin, set `FRONTEND_ORIGIN` before starting the API.
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+FRONTEND_ORIGIN=http://localhost:3001 pnpm start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## API
 
-## Resources
+Base URL:
 
-Check out a few resources that may come in handy when working with NestJS:
+```text
+http://localhost:3000
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Health check:
 
-## Support
+```http
+GET /
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Campaigns:
 
-## Stay in touch
+```http
+POST /campaigns
+GET /campaigns
+GET /campaigns/usage-summary
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Discount codes:
 
-## License
+```http
+POST /discount-codes
+GET /discount-codes
+GET /discount-codes/:id
+POST /discount-codes/:code/redeem
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Swagger documentation is available at:
+
+```text
+http://localhost:3000/api
+```
+
+## Data Model
+
+The API stores three core records:
+
+- `Campaign`: groups discount codes for reporting.
+- `DiscountCode`: stores the alphanumeric code, discount type, value, expiry,
+  usage limit, and redemption count.
+- `Redemption`: records each successful redemption and links it back to the code
+  and campaign.
+
+`DiscountType` is stored as `PERCENT` or `FIXED`. Fixed discounts require a
+currency value, currently sent by the frontend as `USD`.
+
+## Validation And Behavior
+
+- Discount code values must be positive.
+- Usage limits must be at least `1`.
+- Expiry dates must be valid dates in the future when creating codes.
+- Duplicate campaign names and duplicate discount codes return conflict errors.
+- Redeeming a missing code returns `404`.
+- Redeeming an expired code returns a validation error and does not create a
+  redemption.
+- Redeeming a code that has reached its usage limit returns a validation error
+  and does not create a redemption.
+- Redemptions run in a Prisma transaction so the count and redemption row are
+  updated together.
+
+## Scripts
+
+```bash
+pnpm start:dev    # run Nest in watch mode
+pnpm build        # generate Prisma client and compile
+pnpm lint         # run ESLint with fixes
+pnpm test         # unit tests
+pnpm test:e2e     # API e2e tests, run serially against SQLite
+pnpm test:cov     # coverage report
+```
+
+## Tests
+
+The e2e suite covers the meaningful API behavior for this assignment:
+
+- campaign creation and listing
+- usage summary across campaigns
+- discount code creation, listing, and detail retrieval
+- successful redemption
+- expired-code rejection
+- usage-limit rejection
+- CORS configuration for the frontend origin
+- Swagger route availability
+
+Run all backend checks:
+
+```bash
+pnpm lint
+pnpm test
+pnpm test:e2e
+pnpm build
+```
+
+## Trade-offs
+
+- SQLite keeps the app easy to run from a cold start, but it is not intended as
+  the final production persistence layer.
+- Campaigns are a first-class resource because the frontend needs stable campaign
+  IDs and the summary endpoint groups usage by campaign.
+- The API exposes create/list campaign endpoints even though the assignment
+  focuses on discount codes, because a code cannot be created safely without an
+  existing campaign relationship.
+- Authentication, authorization, pagination, and audit trails are intentionally
+  out of scope for this small internal-tool submission.

@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Discount Codes Frontend
 
-## Getting Started
+React and Next.js client for the internal discount code tool. The app consumes
+the NestJS backend on port `3000` and runs locally on port `3001`.
 
-First, run the development server:
+<p>
+  <img src="./docs/images/dashboard.png" alt="Discount code dashboard screenshot" />
+</p>
+
+<p>
+  <img src="./docs/images/create-code.png" alt="Create discount code form screenshot" />
+</p>
+
+## Tech Stack
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Vitest
+- Testing Library
+
+## Setup
+
+Install dependencies from this directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create an optional local environment file if the backend is not running at the
+default URL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Start the frontend on port `3001`:
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+The backend should be running separately from `../backend`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd ../backend
+pnpm start:dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Screens
 
-## Deploy on Vercel
+- `/`: dashboard with usage summary, campaign usage, and discount code table.
+- `/discount-codes/new`: form for creating a discount code.
+- `/discount-codes/[id]`: detail view for one discount code.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Data Flow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The API client lives in `lib/discount-codes/api.ts`.
+
+- `getDiscountCodes()` reads `GET /discount-codes`.
+- `getDiscountCode(id)` reads `GET /discount-codes/:id`.
+- `createDiscountCode(input)` posts to `POST /discount-codes`.
+- `redeemDiscountCode(code)` posts to `POST /discount-codes/:code/redeem`.
+- `getCampaigns()` reads `GET /campaigns`.
+- `getUsageSummary()` reads `GET /campaigns/usage-summary` and adapts the
+  backend response into the summary cards used by the dashboard.
+
+The dashboard updates the redeemed row and refreshes the usage summary after a
+successful redemption without a full page reload.
+
+## Scripts
+
+```bash
+pnpm dev       # run the client on port 3001
+pnpm build     # production build
+pnpm start     # serve the production build on port 3001
+pnpm lint      # ESLint
+pnpm test      # Vitest test suite
+```
+
+## Tests
+
+The frontend tests cover the main UI and API-client behavior:
+
+- dashboard rendering and redemption flow
+- discount code form submission
+- discount code detail redemption
+- API client URL construction, error handling, and endpoint mapping
+
+Run all frontend checks:
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+```
+
+## Trade-offs
+
+- The UI uses client components because the assignment emphasizes direct API data
+  flow and in-place redemption updates.
+- The form currently selects an existing campaign. Campaign creation is supported
+  by the backend API client but is not exposed as a dedicated frontend screen.
+- Summary cards are derived from the backend usage-summary endpoint. The backend
+  does not currently return expiry metadata in that endpoint, so the frontend
+  does not count expired codes in the summary panel yet.
+- The interface is intentionally plain and operational: a table, form, and
+  summary panel over heavier visual design.

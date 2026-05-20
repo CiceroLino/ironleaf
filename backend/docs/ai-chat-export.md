@@ -108,3 +108,17 @@ Exacly, start now
 ### Assistant
 
 Proceeding to commit the current backend changes with the requested commit message format.
+
+### User
+
+Requested implementation of the planned discount-code API.
+
+### Assistant
+
+Started implementation in commit-sized backend chunks. First chunk adds Prisma ORM infrastructure with SQLite:
+
+- Installed Prisma runtime and CLI dependencies.
+- Installed validation dependencies for future DTOs.
+- Approved required pnpm build scripts for Prisma and SQLite native packages.
+- Added Prisma schema/config, `PrismaModule`, and `PrismaService`.
+- Generated and applied the initial SQLite migration.

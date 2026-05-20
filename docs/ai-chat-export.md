@@ -40,3 +40,27 @@ Earlier app-level exports still exist at:
 
 - `backend/docs/ai-chat-export.md`
 - `frontend/docs/ai-chat-export.md`
+
+## 2026-05-20 Cold-Start Follow-up
+
+### User
+
+Requested implementation in this order:
+
+- cold-start improvements first
+- richer Swagger DTO decorators/examples
+- campaign creation from the frontend campaign select
+- optional seed script
+- another review with a 0-10 rating
+
+### Assistant Work
+
+- Planned a modal campaign creation flow from the discount-code form.
+- Added failing tests first for Swagger DTO metadata, Prisma seed wiring, and
+  campaign modal behavior.
+- Added Swagger decorators/examples to campaign and discount-code create DTOs.
+- Added a Prisma seed script and `pnpm prisma:seed` command wired through
+  `prisma.config.ts`.
+- Added a frontend modal that creates a campaign, selects it, and preserves the
+  discount-code form if campaign creation fails.
+- Ran backend/frontend lint, tests, builds, Prisma seed, and OSV scanning.

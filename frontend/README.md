@@ -45,6 +45,7 @@ The backend should be running separately from `../backend`:
 
 ```bash
 cd ../backend
+pnpm prisma:seed
 pnpm start:dev
 ```
 
@@ -61,6 +62,8 @@ The API client lives in `lib/discount-codes/api.ts`.
 - `getDiscountCodes()` reads `GET /discount-codes`.
 - `getDiscountCode(id)` reads `GET /discount-codes/:id`.
 - `createDiscountCode(input)` posts to `POST /discount-codes`.
+- `createCampaign(input)` posts to `POST /campaigns` from the campaign modal in
+  the discount-code form.
 - `redeemDiscountCode(code)` posts to `POST /discount-codes/:code/redeem`.
 - `getCampaigns()` reads `GET /campaigns`.
 - `getUsageSummary()` reads `GET /campaigns/usage-summary` and adapts the
@@ -84,7 +87,7 @@ pnpm test      # Vitest test suite
 The frontend tests cover the main UI and API-client behavior:
 
 - dashboard rendering and redemption flow
-- discount code form submission
+- discount code form submission and modal campaign creation
 - discount code detail redemption
 - API client URL construction, error handling, and endpoint mapping
 
@@ -100,8 +103,8 @@ pnpm build
 
 - The UI uses client components because the assignment emphasizes direct API data
   flow and in-place redemption updates.
-- The form currently selects an existing campaign. Campaign creation is supported
-  by the backend API client but is not exposed as a dedicated frontend screen.
+- The form creates campaigns through a modal instead of a separate screen, which
+  keeps the cold-start path close to discount-code creation.
 - Summary cards are derived from the backend usage-summary endpoint. The backend
   does not currently return expiry metadata in that endpoint, so the frontend
   does not count expired codes in the summary panel yet.

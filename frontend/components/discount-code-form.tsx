@@ -2,7 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { createDiscountCode, getCampaigns } from "@/lib/discount-codes/api";
+import {
+  createCampaign,
+  createDiscountCode,
+  getCampaigns,
+} from "@/lib/discount-codes/api";
 import type {
   Campaign,
   CreateDiscountCodeInput,
@@ -19,12 +23,18 @@ const initialForm: CreateDiscountCodeInput = {
   usageLimit: 100,
 };
 
+const newCampaignValue = "__new_campaign__";
+
 export function DiscountCodeForm() {
   const [form, setForm] = useState<CreateDiscountCodeInput>(initialForm);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignName, setCampaignName] = useState("");
   const [createdCode, setCreatedCode] = useState<DiscountCode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
 
   useEffect(() => {
     const loadCampaigns = async () => {
@@ -50,6 +60,52 @@ export function DiscountCodeForm() {
     value: CreateDiscountCodeInput[Key],
   ) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const openCampaignDialog = () => {
+    setCampaignError(null);
+    setCampaignName("");
+    setIsCampaignDialogOpen(true);
+  };
+
+  const closeCampaignDialog = () => {
+    setCampaignError(null);
+    setCampaignName("");
+    setIsCampaignDialogOpen(false);
+  };
+
+  const handleCampaignChange = (value: string) => {
+    if (value === newCampaignValue) {
+      openCampaignDialog();
+      return;
+    }
+
+    updateForm("campaignId", value);
+  };
+
+  const handleCreateCampaign = async () => {
+    const name = campaignName.trim();
+
+    if (!name) {
+      setCampaignError("Campaign name is required");
+      return;
+    }
+
+    setCampaignError(null);
+    setIsCreatingCampaign(true);
+
+    try {
+      const campaign = await createCampaign({ name });
+      setCampaigns((current) => [...current, campaign]);
+      updateForm("campaignId", campaign.id);
+      closeCampaignDialog();
+    } catch (caught) {
+      setCampaignError(
+        caught instanceof Error ? caught.message : "Unable to create campaign",
+      );
+    } finally {
+      setIsCreatingCampaign(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -112,7 +168,7 @@ export function DiscountCodeForm() {
           Campaign
           <select
             value={form.campaignId}
-            onChange={(event) => updateForm("campaignId", event.target.value)}
+            onChange={(event) => handleCampaignChange(event.target.value)}
             required
             className="h-11 rounded-md border border-slate-300 px-3 text-slate-950 outline-none ring-emerald-500 transition focus:ring-2"
           >
@@ -124,7 +180,20 @@ export function DiscountCodeForm() {
                 {campaign.name}
               </option>
             ))}
+            <option value={newCampaignValue}>Add new campaign...</option>
           </select>
+          {campaigns.length === 0 ? (
+            <span className="flex items-center justify-between gap-3 text-sm font-normal text-slate-500">
+              No campaigns yet.
+              <button
+                type="button"
+                onClick={openCampaignDialog}
+                className="font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                Add campaign
+              </button>
+            </span>
+          ) : null}
         </label>
 
         <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -197,6 +266,71 @@ export function DiscountCodeForm() {
           {isSubmitting ? "Creating..." : "Create code"}
         </button>
       </div>
+
+      {isCampaignDialogOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="campaign-dialog-title"
+          className="fixed inset-0 z-10 grid place-items-center bg-slate-950/45 px-4"
+        >
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-5 shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2
+                  id="campaign-dialog-title"
+                  className="text-lg font-semibold text-slate-950"
+                >
+                  Add campaign
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Create a campaign before assigning this discount code.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCampaignDialog}
+                className="rounded-md px-2 py-1 text-sm font-medium text-slate-500 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+
+            {campaignError ? (
+              <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {campaignError}
+              </div>
+            ) : null}
+
+            <label className="mt-4 grid gap-2 text-sm font-medium text-slate-700">
+              Campaign name
+              <input
+                value={campaignName}
+                onChange={(event) => setCampaignName(event.target.value)}
+                className="h-11 rounded-md border border-slate-300 px-3 text-slate-950 outline-none ring-emerald-500 transition focus:ring-2"
+              />
+            </label>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeCampaignDialog}
+                className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCreateCampaign()}
+                disabled={isCreatingCampaign}
+                className="inline-flex h-10 items-center justify-center rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {isCreatingCampaign ? "Creating..." : "Create campaign"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </form>
   );
 }

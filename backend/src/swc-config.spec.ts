@@ -23,6 +23,7 @@ type SwcConfig = {
 };
 
 type PackageJson = {
+  scripts: Record<string, string>;
   jest: {
     transform: Record<string, string[]>;
   };
@@ -63,5 +64,18 @@ describe('SWC configuration', () => {
     expect(packageJson.jest.transform).toEqual({
       '^.+\\.(t|j)s$': ['@swc/jest'],
     });
+  });
+
+  it('wires a Prisma seed command for cold starts', () => {
+    const packageJson = readJson<PackageJson>(join(rootDir, 'package.json'));
+    const prismaConfig = readFileSync(
+      join(rootDir, 'prisma.config.ts'),
+      'utf8',
+    );
+
+    expect(packageJson.scripts['prisma:seed']).toBe('prisma db seed');
+    expect(prismaConfig).toContain(
+      "seed: 'ts-node --transpile-only prisma/seed.ts'",
+    );
   });
 });

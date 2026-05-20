@@ -31,6 +31,12 @@ Generate the Prisma client:
 pnpm prisma:generate
 ```
 
+Optionally seed sample campaigns and discount codes for a cold start:
+
+```bash
+pnpm prisma:seed
+```
+
 Run the API on port `3000`:
 
 ```bash
@@ -111,6 +117,7 @@ currency value, currently sent by the frontend as `USD`.
 ## Scripts
 
 ```bash
+pnpm prisma:seed   # seed sample local data
 pnpm start:dev    # run Nest in watch mode
 pnpm build        # generate Prisma client and compile
 pnpm lint         # run ESLint with fixes

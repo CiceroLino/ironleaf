@@ -12,6 +12,23 @@ type OpenApiDocument = {
     version: string;
   };
   paths: Record<string, unknown>;
+  components: {
+    schemas: Record<
+      string,
+      {
+        required?: string[];
+        properties?: Record<
+          string,
+          {
+            description?: string;
+            example?: unknown;
+            enum?: string[];
+            minimum?: number;
+          }
+        >;
+      }
+    >;
+  };
 };
 
 describe('Swagger docs (e2e)', () => {
@@ -43,6 +60,39 @@ describe('Swagger docs (e2e)', () => {
     });
     expect(document.paths).toHaveProperty('/campaigns');
     expect(document.paths).toHaveProperty('/discount-codes');
+  });
+
+  it('documents request DTO fields with examples and constraints', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api-json')
+      .expect(200);
+    const document = response.body as unknown as OpenApiDocument;
+
+    const campaignSchema = document.components.schemas.CreateCampaignDto;
+    const discountCodeSchema =
+      document.components.schemas.CreateDiscountCodeDto;
+
+    expect(campaignSchema.required).toContain('name');
+    expect(campaignSchema.properties?.name).toMatchObject({
+      description: 'Campaign label used to group discount codes',
+      example: 'Black Friday',
+    });
+    expect(discountCodeSchema.properties?.code).toMatchObject({
+      description: 'Alphanumeric discount code customers redeem',
+      example: 'SUMMER20',
+    });
+    expect(discountCodeSchema.properties?.discountType).toMatchObject({
+      description: 'Whether the discount is percentage based or fixed amount',
+      enum: ['PERCENT', 'FIXED'],
+      example: 'PERCENT',
+    });
+    expect(discountCodeSchema.properties?.discountValue).toMatchObject({
+      example: 20,
+      minimum: 0,
+    });
+    expect(discountCodeSchema.properties?.currency).toMatchObject({
+      example: 'USD',
+    });
   });
 
   afterEach(async () => {

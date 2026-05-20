@@ -129,3 +129,10 @@ Second implementation chunk adds campaigns:
 - Wired `PrismaModule` and `CampaignsModule` into `AppModule`.
 - Added a global validation pipe in `main.ts`.
 - Added e2e coverage for creating and listing campaigns.
+
+Third implementation chunk adds discount-code management:
+
+- Added `DiscountCodesModule`, controller, service, and create DTO.
+- Added endpoints for creating, listing, and viewing discount codes.
+- Added validation for campaign existence, duplicate codes, fixed-discount currency, and future expiration dates.
+- Added e2e coverage for percent and fixed discount-code creation plus list/detail retrieval.

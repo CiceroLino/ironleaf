@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DiscountCode, DiscountType, Prisma } from '../../generated/prisma/client';
+import { DiscountCode, DiscountType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDiscountCodeDto } from './dto/create-discount-code.dto';
 

@@ -172,3 +172,11 @@ SWC chunk:
 - Added `.swcrc` with Nest-compatible decorator metadata settings.
 - Switched Jest transforms from `ts-jest` to `@swc/jest`.
 - Added a config test to lock the SWC setup.
+
+### User
+
+Requested moving Prisma generated output out of the root project `generated/` folder and into the Prisma client under `node_modules`, then removing the old generated folder and updating imports.
+
+### Assistant
+
+Switched Prisma generation from the explicit `../generated/prisma` output to the default `prisma-client-js` node_modules client output, updated imports to `@prisma/client`, and added a regression test for the client output/import configuration.

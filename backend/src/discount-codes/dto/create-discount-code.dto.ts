@@ -10,7 +10,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { DiscountType } from '../../../generated/prisma/client';
+import { DiscountType } from '@prisma/client';
 
 export class CreateDiscountCodeDto {
   @IsString()
